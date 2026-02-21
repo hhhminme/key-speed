@@ -3,9 +3,7 @@ dotenv.config();
 
 import { synthesize } from './services/elevenlabs';
 
-const sampleTexts = [
-  '오늘 하루도 최선을 다해 살아가는 당신을 응원합니다.',
-];
+const sampleTexts = ['오늘 하루도 최선을 다해 살아가는 당신을 응원합니다.'];
 
 function extractKoreanWords(texts: string[]): string[] {
   const set = new Set<string>();
@@ -38,11 +36,13 @@ async function main() {
     } catch (err) {
       process.stdout.write(`FAIL: ${err}\n`);
     }
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 300));
   }
 
   const cached = words.length - fetched;
-  console.log(`\n완료! 총 ${words.length}개 (신규 API 호출: ${fetched}, 이미 캐시됨: ${cached})`);
+  console.log(
+    `\n완료! 총 ${words.length}개 (신규 API 호출: ${fetched}, 이미 캐시됨: ${cached})`
+  );
 }
 
 main();

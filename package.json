@@ -1,23 +1,49 @@
 {
-  "name": "key-speed-server",
-  "version": "1.0.0",
-  "description": "ElevenLabs TTS proxy server for key-speed",
-  "main": "dist/index.js",
+  "name": "key-speed",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": ["frontend", "server"],
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "granite dev",
+    "dev:server": "npm run dev -w server",
+    "build": "granite build",
+    "build:server": "npm run build -w server",
+    "deploy": "ait deploy",
+    "lint": "npm run lint -w frontend",
+    "lint:fix": "npm run lint:fix -w frontend",
+    "test": "npm run test -w frontend",
+    "test:run": "npm run test:run -w frontend",
+    "test:coverage": "npm run test:coverage -w frontend",
+    "format": "prettier --write \"frontend/src/**/*.{ts,tsx,js,jsx,json,css,md}\" \"server/src/**/*.ts\"",
+    "format:check": "prettier --check \"frontend/src/**/*.{ts,tsx,js,jsx,json,css,md}\" \"server/src/**/*.ts\"",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix --config frontend/eslint.config.js",
+      "prettier --write"
+    ],
+    "frontend/src/**/*.{json,css,md}": [
+      "prettier --write"
+    ],
+    "server/src/**/*.ts": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "@apps-in-toss/web-framework": "^1.11.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@toss/tds-mobile": "^2.2.1",
+    "@toss/tds-mobile-ait": "^2.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.13.4",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1"
   }
 }
