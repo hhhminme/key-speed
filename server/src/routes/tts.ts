@@ -51,4 +51,65 @@ router.get(
   }
 );
 
+interface BatchRequestBody {
+  words: string[];
+}
+
+interface BatchResultItem {
+  word: string;
+  audio: string; // base64
+}
+
+const MAX_BATCH_SIZE = 20;
+
+router.post(
+  '/batch',
+  async (
+    req: Request<Record<string, never>, unknown, BatchRequestBody>,
+    res: Response
+  ): Promise<void> => {
+    const { words } = req.body;
+
+    if (!Array.isArray(words) || words.length === 0) {
+      res.status(400).json({ error: 'words must be a non-empty array.' });
+      return;
+    }
+
+    if (words.length > MAX_BATCH_SIZE) {
+      res
+        .status(400)
+        .json({ error: `Maximum ${MAX_BATCH_SIZE} words per batch.` });
+      return;
+    }
+
+    const invalidWords = words.filter(w => !isKoreanText(w));
+    if (invalidWords.length > 0) {
+      res.status(400).json({
+        error: `Invalid words: ${invalidWords.join(', ')}. Korean only, max 10 chars each.`,
+      });
+      return;
+    }
+
+    const results: BatchResultItem[] = [];
+    const errors: Array<{ word: string; error: string }> = [];
+
+    await Promise.allSettled(
+      words.map(async word => {
+        try {
+          const audio = await synthesize(word);
+          results.push({ word, audio: audio.toString('base64') });
+        } catch (err) {
+          errors.push({
+            word,
+            error: err instanceof Error ? err.message : 'Unknown error',
+          });
+        }
+      })
+    );
+
+    res.set('Cache-Control', `public, max-age=${ONE_WEEK_SECONDS}, immutable`);
+    res.json({ results, errors });
+  }
+);
+
 export default router;
