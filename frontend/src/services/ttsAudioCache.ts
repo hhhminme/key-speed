@@ -3,7 +3,7 @@ import {
   getCachedAudioBatch,
   setCachedAudio,
 } from './ttsIndexedDB';
-import { fetchTTSAudio } from './ttsApiClient';
+import { fetchTTSAudio, fetchTTSAudioBatch } from './ttsApiClient';
 import { TTS_CONFIG } from './ttsConfig';
 
 export class TTSAudioCache {
@@ -41,7 +41,7 @@ export class TTSAudioCache {
     }
   }
 
-  /** 병렬 사전 로딩 (동시 maxConcurrent개 제한) */
+  /** Batch API를 활용한 사전 로딩 */
   async preloadChars(chars: string[]): Promise<void> {
     // IDB에서 이미 캐싱된 것 배치 조회
     const idbCached = await getCachedAudioBatch(chars);
@@ -56,28 +56,44 @@ export class TTSAudioCache {
       }
     }
 
-    // 아직 메모리에 없는 글자만 API 호출
+    // 아직 메모리에 없는 글자만 Batch API 호출
     const uncached = chars.filter(c => !this.memory.has(c));
     this.preloadTotal = uncached.length;
     this.preloadLoaded = 0;
 
     if (uncached.length === 0) return;
 
-    const max = TTS_CONFIG.maxConcurrent;
-    let idx = 0;
-
-    const next = async (): Promise<void> => {
-      while (idx < uncached.length) {
-        const char = uncached[idx++];
-        await this.getOrFetch(char);
-        this.preloadLoaded++;
+    try {
+      const batchResult = await fetchTTSAudioBatch(uncached);
+      for (const [word, raw] of batchResult) {
+        try {
+          setCachedAudio(word, raw.slice(0));
+          const audioBuf = await this.ctx.decodeAudioData(raw.slice(0));
+          this.memory.set(word, audioBuf);
+          this.preloadLoaded++;
+        } catch {
+          // 개별 디코딩 실패 무시
+        }
       }
-    };
+    } catch {
+      // Batch API 실패 시 개별 요청으로 폴백
+      const max = TTS_CONFIG.maxConcurrent;
+      let idx = 0;
 
-    const workers = Array.from({ length: Math.min(max, uncached.length) }, () =>
-      next()
-    );
-    await Promise.allSettled(workers);
+      const next = async (): Promise<void> => {
+        while (idx < uncached.length) {
+          const char = uncached[idx++];
+          await this.getOrFetch(char);
+          this.preloadLoaded++;
+        }
+      };
+
+      const workers = Array.from(
+        { length: Math.min(max, uncached.length) },
+        () => next()
+      );
+      await Promise.allSettled(workers);
+    }
   }
 
   getPreloadProgress(): { loaded: number; total: number } {
