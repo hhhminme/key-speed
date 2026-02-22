@@ -1,0 +1,15 @@
+services:
+  tts-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./server/.env
+    volumes:
+      - tts-cache:/app/cache
+    restart: unless-stopped
+
+volumes:
+  tts-cache:
