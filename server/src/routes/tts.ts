@@ -1,5 +1,8 @@
+import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { synthesize } from '../services/elevenlabs';
+
+const ONE_WEEK_SECONDS = 7 * 24 * 60 * 60;
 
 const router = Router();
 
@@ -27,7 +30,19 @@ router.get(
 
     try {
       const audio = await synthesize(text);
+
+      const etag = `"${crypto.createHash('md5').update(audio).digest('hex')}"`;
+      if (req.headers['if-none-match'] === etag) {
+        res.status(304).end();
+        return;
+      }
+
       res.set('Content-Type', 'audio/mpeg');
+      res.set(
+        'Cache-Control',
+        `public, max-age=${ONE_WEEK_SECONDS}, immutable`
+      );
+      res.set('ETag', etag);
       res.send(audio);
     } catch (error) {
       console.error('TTS error:', error);
