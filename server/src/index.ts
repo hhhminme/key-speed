@@ -18,5 +18,5 @@ app.get('/health', (_req, res) => {
 app.use('/api/tts', ttsRouter);
 
 app.listen(port, () => {
-  console.log(`key-speed-server running on http://localhost:${port}`);
+  console.log(`key-speed TTS server running on http://localhost:${port}`);
 });
